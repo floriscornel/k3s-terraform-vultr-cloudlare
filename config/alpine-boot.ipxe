@@ -1,0 +1,34 @@
+#!ipxe
+
+set ssh_key ssh_key=%KEYS_URL%
+
+set os Alpine Linux
+iseq ${ipxe_cloud_config} packet && set provider (Packet.net) ||
+iseq ${alpine_loader} true && set img_verify enabled || set img_verify disabled
+set console tty0 ||
+set cmdline modules=loop,squashfs quiet nomodeset ||
+set default_cmdline default ||
+set start_sshd no ||
+set branch v3.14 ||
+set version 3.14.2 ||
+set flavor virt ||
+set arch x86_64 ||
+iseq ${ipxe_cloud_config} packet && set console ttyS1,115200n8 ||
+set start_sshd yes
+isset ${console} && set console console=${console} ||
+set mirror http://dl-cdn.alpinelinux.org/alpine
+set img-url ${mirror}/${branch}/releases/${arch}/netboot-${version}
+set sig-url sigs/${branch}/${arch}/${version}
+set repo-url ${mirror}/${branch}/main
+set modloop-url ${img-url}/modloop-${flavor}
+imgfree
+kernel ${img-url}/vmlinuz-${flavor} ${cmdline} alpine_repo=${repo-url} modloop=${modloop-url} ${console} ${acpi} ${ssh_key}
+initrd ${img-url}/initramfs-${flavor}
+iseq ${img_verify} enabled && goto verify_img || goto no_img_verify
+:verify_img
+imgverify vmlinuz-${flavor} ${sig-url}/vmlinuz-${flavor}.sig
+imgverify initramfs-${flavor} ${sig-url}/initramfs-${flavor}.sig
+:no_img_verify
+boot
+clear menu
+exit 0
